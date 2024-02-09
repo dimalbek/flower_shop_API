@@ -20,6 +20,21 @@ def root(request: Request):
 
 
 # ваше решение сюда
+@app.get("/signup")
+def display_signup(request: Request):
+    return templates.TemplateResponse("users/signup.html", {"request": request})
 
+
+@app.post("/signup")
+def post_book(
+    request: Request,
+    email: str = Form(),
+    fullname: str = Form(),
+    password: str = Form(),
+):
+    user = User(email=email, fullname=fullname, password=password)
+    users_repository.save(user)
+
+    return RedirectResponse("/login", status_code=303)
 
 # конец решения
