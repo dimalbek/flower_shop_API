@@ -4,6 +4,15 @@ from fastapi.responses import RedirectResponse
 from .flowers_repository import Flower, FlowersRepository
 from .purchases_repository import Purchase, PurchasesRepository
 from .users_repository import User, UsersRepository
+import bcrypt
+
+
+def hash_password(password: str):
+    password = b'{password}'
+    salt = bcrypt.gensalt()
+    hashed = bcrypt.hashpw(password, salt)
+    return hashed
+
 
 app = FastAPI()
 templates = templating.Jinja2Templates("templates")
@@ -32,9 +41,12 @@ def post_book(
     fullname: str = Form(),
     password: str = Form(),
 ):
-    user = User(email=email, fullname=fullname, password=password)
+    password = hash_password(password)
+
+    user = User(email=email, full_name=fullname, password=password)
     users_repository.save(user)
 
+    # return {'succesful signup'}
     return RedirectResponse("/login", status_code=303)
 
 # конец решения
