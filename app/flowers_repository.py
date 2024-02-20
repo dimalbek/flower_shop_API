@@ -36,7 +36,10 @@ class FlowersRepository:
                 input.id = id
                 self.flowers[i] = input
 
-    def delete(self, id: int,):
+    def delete(
+        self,
+        id: int,
+    ):
         for i, flower in enumerate(self.flowers):
             if flower.id == id:
                 del self.flowers[i]
