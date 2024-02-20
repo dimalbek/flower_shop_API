@@ -54,6 +54,7 @@ def post_signup(
     password: str = Form(),
 ):
     password = hash_password(password)
+    print (password)
 
     user = User(email=email, full_name=full_name, password=password)
     users_repository.save(user)
@@ -75,6 +76,7 @@ def post_login(
     password: str = Form(),
 ):
     password = hash_password(password)
+    print (password)
     user = users_repository.check_user(email, password)
     if user is None:
         return Response(status_code=401, content="Not authorized")
