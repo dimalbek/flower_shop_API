@@ -49,5 +49,5 @@ class UsersRepository:
 
         return None
 
-
+    
     # конец решения

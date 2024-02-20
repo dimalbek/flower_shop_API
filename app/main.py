@@ -50,12 +50,12 @@ def display_signup(request: Request):
 def post_signup(
     request: Request,
     email: str = Form(),
-    fullname: str = Form(),
+    full_name: str = Form(),
     password: str = Form(),
 ):
     password = hash_password(password)
 
-    user = User(email=email, full_name=fullname, password=password)
+    user = User(email=email, full_name=full_name, password=password)
     users_repository.save(user)
 
     # return {'succesful signup'}
@@ -67,9 +67,10 @@ def display_login(request: Request):
     return templates.TemplateResponse("users/login.html", {"request": request})
 
 
-@app.post("/signup")
+@app.post("/login")
 def post_login(
     request: Request,
+    response: Response,
     email: str = Form(),
     password: str = Form(),
 ):
@@ -82,6 +83,20 @@ def post_login(
     token = create_jwt(user.id)
     response.set_cookie("token", token)
     return response
+
+
+@app.get("/profile")
+def get_profile(request: Request, token: str = Cookie(default="")):
+    if token == "":
+        return RedirectResponse("/login", status_code=303)
+    user_id = decode_jwt(token)
+    user = users_repository.get_one(int(user_id))
+    if user is None:
+        return Response(status_code=401, content="Not authorized")
+
+    return templates.TemplateResponse(
+        "users/profile.html", {"request": request, "user": user}
+    )
 
 
 # конец решения
