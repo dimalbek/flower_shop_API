@@ -5,6 +5,7 @@ from attrs import define
 class User:
     email: str
     full_name: str
+    password: bytes
     id: int = 0
 
 
