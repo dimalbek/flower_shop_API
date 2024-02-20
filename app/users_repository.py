@@ -41,4 +41,13 @@ class UsersRepository:
             if user.id == id:
                 del self.users[i]
 
+    def check_user(self, email: str, password: bytes):
+        for user in self.users:
+            if user.email == email:
+                if user.password == password:
+                    return user
+
+        return None
+
+
     # конец решения
