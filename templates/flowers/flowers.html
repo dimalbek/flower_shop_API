@@ -19,7 +19,15 @@
     <ul>
         {% for flower in flowers %}
         <li>{{ flower.name }} - {{ flower.count }} - {{ flower.cost }}</li>
+        <form action="/cart/items" method="post">
+            <input type="hidden" name="flower_id" value="{{ flower.id }}">
+            <button type="submit">Add to Cart</button>
+        </form>
         {% endfor %}
     </ul>
+
+    <form action="/cart/items" method="get">
+        <button type="submit">View Cart</button>
+    </form>
 </body>
 </html>
