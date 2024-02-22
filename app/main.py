@@ -5,7 +5,6 @@ from jose import jwt
 from .flowers_repository import Flower, FlowersRepository
 from .purchases_repository import Purchase, PurchasesRepository
 from .users_repository import User, UsersRepository
-import bcrypt
 
 
 def hash_password(password: str):
@@ -54,7 +53,7 @@ def post_signup(
     password: str = Form(),
 ):
     password = hash_password(password)
-    print (password)
+    # print (password)
 
     user = User(email=email, full_name=full_name, password=password)
     users_repository.save(user)
@@ -76,7 +75,7 @@ def post_login(
     password: str = Form(),
 ):
     password = hash_password(password)
-    print (password)
+    # print (password)
     user = users_repository.check_user(email, password)
     if user is None:
         return Response(status_code=401, content="Not authorized")
@@ -99,6 +98,26 @@ def get_profile(request: Request, token: str = Cookie(default="")):
     return templates.TemplateResponse(
         "users/profile.html", {"request": request, "user": user}
     )
+
+
+@app.get("/flowers")
+def get_flowers(request: Request):
+    flowers = flowers_repository.get_all()
+    return templates.TemplateResponse(
+        "flowers/flowers.html", {"request": request, "flowers": flowers}
+    )
+
+
+@app.post("/flowers")
+def add_flower(
+    request: Request,
+    name: str = Form(),
+    count: str = Form(),
+    cost: str = Form()
+):
+    flower = Flower(name=name, count=count, cost=cost)
+    flowers_repository.save(flower)
+    return RedirectResponse("/flowers", status_code=303)
 
 
 # конец решения
