@@ -120,4 +120,26 @@ def add_flower(
     return RedirectResponse("/flowers", status_code=303)
 
 
+def get_cart_items_from_cookie(request: Request):
+    cart_items = request.cookies.get("cart_items")
+    if cart_items is None:
+        return []
+    cart = cart_items.split()
+    return cart
+
+
+@app.post("/cart/items")
+def add_flower_to_cookie(
+    request: Request,
+    response: Response,
+    flower_id: str = Form(),
+):
+    cart_items = get_cart_items_from_cookie(request)
+    cart_items.append(flower_id)
+    cart_items_str = ",".join([str(item) for item in cart_items])
+    response.set_cookie("cart_items", cart_items_str)
+    return RedirectResponse("/flowers", status_code=303)
+
+
+
 # конец решения
