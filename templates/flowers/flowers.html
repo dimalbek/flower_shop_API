@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Flowers</title>
+</head>
+<body>
+    <h1>Flowers</h1>
+    <form action="/flowers" method="post">
+        <label for="name">Name:</label><br>
+        <input type="text" id="name" name="name"><br>
+        <label for="count">Count:</label><br>
+        <input type="number" id="count" name="count"><br>
+        <label for="cost">Cost:</label><br>
+        <input type="number" id="cost" name="cost"><br><br>
+        <button type="submit">Add Flower</button>
+    </form>
+    
+    <h2>Flower List</h2>
+    <ul>
+        {% for flower in flowers %}
+        <li>{{ flower.name }} - {{ flower.count }} - {{ flower.cost }}</li>
+        {% endfor %}
+    </ul>
+</body>
+</html>
