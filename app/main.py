@@ -9,10 +9,10 @@ import bcrypt
 
 
 def hash_password(password: str):
-    password = b"{password}"
-    salt = bcrypt.gensalt()
-    hashed = bcrypt.hashpw(password, salt)
-    return hashed
+    h = 0
+    for char in password:
+        h = (31 * h + ord(char)) & 0xFFFFFFFF
+    return bytes(((h + 0x80000000) & 0xFFFFFFFF) - 0x80000000)
 
 
 app = FastAPI()
