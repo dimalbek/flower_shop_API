@@ -110,10 +110,7 @@ def get_flowers(request: Request):
 
 @app.post("/flowers")
 def add_flower(
-    request: Request,
-    name: str = Form(),
-    count: str = Form(),
-    cost: str = Form()
+    request: Request, name: str = Form(), count: str = Form(), cost: str = Form()
 ):
     flower = Flower(name=name, count=count, cost=cost)
     flowers_repository.save(flower)
@@ -140,6 +137,29 @@ def add_flower_to_cookie(
     response.set_cookie("cart_items", cart_items_str)
     return RedirectResponse("/flowers", status_code=303)
 
+
+@app.get("/cart/items")
+def get_cart_items(request: Request):
+    cart_items = get_cart_items_from_cookie(request)
+    flowers_in_cart = []
+    total_cost = 0
+
+    for flower_id in cart_items:
+        flower = flowers_repository.get_one(flower_id)
+        if flower:
+            flowers_in_cart.append(
+                {"id": flower.id, "name": flower.name, "cost": flower.cost}
+            )
+            total_cost += flower.cost
+
+    return templates.TemplateResponse(
+        "flowers/cart.html",
+        {
+            "request": request,
+            "flowers_in_cart": flowers_in_cart,
+            "total_cost": total_cost,
+        },
+    )
 
 
 # конец решения
