@@ -116,13 +116,11 @@ def get_flowers():
     return flowers_repository.get_all()
 
 
-@app.post("/flowers")
-def add_flower(
-    request: Request, name: str = Form(), count: str = Form(), cost: str = Form()
-):
-    flower = Flower(name=name, count=count, cost=cost)
-    flowers_repository.save(flower)
-    return RedirectResponse("/flowers", status_code=303)
+@app.post("/flowers", response_model=Flower)
+def add_flower(name: str = Form(), count: int = Form(), cost: int = Form()):
+    flower_data = Flower(name=name, count=count, cost=cost)
+    saved_flower = flowers_repository.save(flower_data)
+    return saved_flower
 
 
 def get_cart_items_from_cookie(request: Request):
