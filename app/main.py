@@ -15,18 +15,31 @@ from jose import jwt
 from .flowers_repository import Flower, FlowersRepository
 from .purchases_repository import Purchase, PurchasesRepository
 from .users_repository import User, UsersRepository
+from passlib.context import CryptContext
 
 
-def hash_password(password: str):
-    h = 0
-    for char in password:
-        h = (31 * h + ord(char)) & 0xFFFFFFFF
-    return bytes(((h + 0x80000000) & 0xFFFFFFFF) - 0x80000000)
+
+# def hash_password(password: str):
+#     h = 0
+#     for char in password:
+#         h = (31 * h + ord(char)) & 0xFFFFFFFF
+#     return bytes(((h + 0x80000000) & 0xFFFFFFFF) - 0x80000000)
 
 
 app = FastAPI()
 templates = templating.Jinja2Templates("templates")
+
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+
+def hash_password(password: str) -> str:
+    return pwd_context.hash(password)
+
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    return pwd_context.verify(plain_password, hashed_password)
 
 
 def create_jwt(user_id: int) -> str:
@@ -75,16 +88,15 @@ def display_login(request: Request):
 
 @app.post("/login")
 def post_login(form_data: OAuth2PasswordRequestForm = Depends()):
-    user = users_repository.check_user(
-        form_data.username, hash_password(form_data.password)
-    )
-    if not user:
+    user = users_repository.get_user_by_email(form_data.username)
+    if not user or not verify_password(form_data.password, user.password):
         raise HTTPException(
             status_code=401,
             detail="Incorrect username or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    access_token = create_jwt(user.id)
+
+    access_token = create_jwt(user_id=user.id)
     return {"access_token": access_token, "token_type": "bearer"}
 
 
