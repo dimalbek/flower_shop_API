@@ -19,7 +19,6 @@ from .users_repository import User, UsersRepository
 from passlib.context import CryptContext
 
 
-
 # def hash_password(password: str):
 #     h = 0
 #     for char in password:
@@ -107,7 +106,7 @@ def get_profile(token: str = Depends(oauth2_scheme)):
     user = users_repository.get_one(int(user_id))
     if user is None:
         raise HTTPException(status_code=404, detail="User not found")
-    user_data = user.dict(exclude={'password'})  
+    user_data = user.dict(exclude={"password"})
     return user_data
 
 
@@ -135,13 +134,13 @@ def get_cart_items_from_cookie(request: Request):
 def add_flower_to_cookie(
     request: Request,
     response: Response,
-    flower_id: str = Form(),
+    flower_id: int = Form(),
 ):
     cart_items = get_cart_items_from_cookie(request)
-    cart_items.append(flower_id)
+    cart_items.append(str(flower_id))
     cart_items_str = ",".join([str(item) for item in cart_items])
     response.set_cookie("cart_items", cart_items_str)
-    return RedirectResponse("/flowers", status_code=303)
+    return JSONResponse(content={"message": "flower added to cart"}, status_code=200)
 
 
 @app.get("/cart/items")
@@ -151,6 +150,7 @@ def get_cart_items(request: Request):
     total_cost = 0
 
     for flower_id in cart_items:
+        flower_id = int(flower_id)
         flower = flowers_repository.get_one(flower_id)
         if flower:
             flowers_in_cart.append(
@@ -158,11 +158,6 @@ def get_cart_items(request: Request):
             )
             total_cost += flower.cost
 
-    return templates.TemplateResponse(
-        "flowers/cart.html",
-        {
-            "request": request,
-            "flowers_in_cart": flowers_in_cart,
-            "total_cost": total_cost,
-        },
+    return JSONResponse(
+        content={"flowers_in_cart": flowers_in_cart, "total_cost": total_cost}
     )
