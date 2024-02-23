@@ -1,8 +1,7 @@
-from attrs import define
+from pydantic import BaseModel
 
 
-@define
-class Flower:
+class Flower(BaseModel):
     name: str
     count: int
     cost: int

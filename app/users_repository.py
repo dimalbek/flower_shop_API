@@ -1,8 +1,7 @@
-from attrs import define
+from pydantic import BaseModel
 
 
-@define
-class User:
+class User(BaseModel):
     email: str
     full_name: str
     password: bytes
@@ -36,7 +35,10 @@ class UsersRepository:
                 input.id = id
                 self.users[i] = input
 
-    def delete(self, id: int,):
+    def delete(
+        self,
+        id: int,
+    ):
         for i, user in enumerate(self.users):
             if user.id == id:
                 del self.users[i]
@@ -49,5 +51,4 @@ class UsersRepository:
 
         return None
 
-    
     # конец решения
