@@ -1,5 +1,15 @@
-from fastapi import Cookie, FastAPI, Form, Request, Response, templating
+from fastapi import (
+    Cookie,
+    FastAPI,
+    Form,
+    Request,
+    Response,
+    templating,
+    Depends,
+    HTTPException,
+)
 from fastapi.responses import RedirectResponse
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import jwt
 
 from .flowers_repository import Flower, FlowersRepository
@@ -16,6 +26,7 @@ def hash_password(password: str):
 
 app = FastAPI()
 templates = templating.Jinja2Templates("templates")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 
 def create_jwt(user_id: int) -> str:
@@ -39,7 +50,6 @@ def root(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
 
-# ваше решение сюда
 @app.get("/signup")
 def display_signup(request: Request):
     return templates.TemplateResponse("users/signup.html", {"request": request})
@@ -53,13 +63,9 @@ def post_signup(
     password: str = Form(),
 ):
     password = hash_password(password)
-    # print (password)
-
     user = User(email=email, full_name=full_name, password=password)
     users_repository.save(user)
-
-    # return {'succesful signup'}
-    return RedirectResponse("/login", status_code=303)
+    return Response(content={"successfull signup"}, status_code=200)
 
 
 @app.get("/login")
@@ -68,36 +74,28 @@ def display_login(request: Request):
 
 
 @app.post("/login")
-def post_login(
-    request: Request,
-    response: Response,
-    email: str = Form(),
-    password: str = Form(),
-):
-    password = hash_password(password)
-    # print (password)
-    user = users_repository.check_user(email, password)
-    if user is None:
-        return Response(status_code=401, content="Not authorized")
-
-    response = RedirectResponse("/profile", status_code=303)
-    token = create_jwt(user.id)
-    response.set_cookie("token", token)
-    return response
+def post_login(form_data: OAuth2PasswordRequestForm = Depends()):
+    user = users_repository.check_user(
+        form_data.username, hash_password(form_data.password)
+    )
+    if not user:
+        raise HTTPException(
+            status_code=401,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    access_token = create_jwt(user.id)
+    return {"access_token": access_token, "token_type": "bearer"}
 
 
 @app.get("/profile")
-def get_profile(request: Request, token: str = Cookie(default="")):
-    if token == "":
-        return RedirectResponse("/login", status_code=303)
+def get_profile(token: str = Depends(oauth2_scheme)):
     user_id = decode_jwt(token)
     user = users_repository.get_one(int(user_id))
     if user is None:
-        return Response(status_code=401, content="Not authorized")
-
-    return templates.TemplateResponse(
-        "users/profile.html", {"request": request, "user": user}
-    )
+        raise HTTPException(status_code=404, detail="User not found")
+    user_data = user.dict(exclude={'password'})  
+    return user_data
 
 
 @app.get("/flowers")
@@ -160,6 +158,3 @@ def get_cart_items(request: Request):
             "total_cost": total_cost,
         },
     )
-
-
-# конец решения
