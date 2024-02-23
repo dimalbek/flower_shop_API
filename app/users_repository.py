@@ -51,4 +51,11 @@ class UsersRepository:
 
         return None
 
+    def get_user_by_email(self, email: str):
+        for user in self.users:
+            if email == user.email:
+                return user
+        return None
+    
+
     # конец решения
