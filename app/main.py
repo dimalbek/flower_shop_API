@@ -8,7 +8,7 @@ from fastapi import (
     Depends,
     HTTPException,
 )
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, JSONResponse
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import jwt
 
@@ -65,7 +65,7 @@ def post_signup(
     password = hash_password(password)
     user = User(email=email, full_name=full_name, password=password)
     users_repository.save(user)
-    return Response(content={"successfull signup"}, status_code=200)
+    return JSONResponse(content={"message": "successfull signup"}, status_code=200)
 
 
 @app.get("/login")
