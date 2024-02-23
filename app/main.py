@@ -11,6 +11,7 @@ from fastapi import (
 from fastapi.responses import RedirectResponse, JSONResponse
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import jwt
+from typing import List
 
 from .flowers_repository import Flower, FlowersRepository
 from .purchases_repository import Purchase, PurchasesRepository
@@ -110,12 +111,9 @@ def get_profile(token: str = Depends(oauth2_scheme)):
     return user_data
 
 
-@app.get("/flowers")
-def get_flowers(request: Request):
-    flowers = flowers_repository.get_all()
-    return templates.TemplateResponse(
-        "flowers/flowers.html", {"request": request, "flowers": flowers}
-    )
+@app.get("/flowers", response_model=List[Flower])
+def get_flowers():
+    return flowers_repository.get_all()
 
 
 @app.post("/flowers")
