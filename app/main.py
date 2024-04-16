@@ -12,12 +12,13 @@ from fastapi.responses import RedirectResponse, JSONResponse
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import jwt
 from typing import List
+from pydantic import EmailStr
 
 from .flowers_repository import Flower, FlowersRepository
-from .purchases_repository import Purchase, PurchasesRepository
-from .users_repository import User, UsersRepository
+from .users_repository import User, UsersRepository, UserCreate
 from passlib.context import CryptContext
-
+from sqlalchemy.orm import Session
+from .database import get_db
 
 app = FastAPI()
 templates = templating.Jinja2Templates("templates")
@@ -47,36 +48,20 @@ def decode_jwt(token: str) -> int:
 
 
 flowers_repository = FlowersRepository()
-purchases_repository = PurchasesRepository()
 users_repository = UsersRepository()
-
-
-@app.get("/")
-def root(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
-
-
-@app.get("/signup")
-def display_signup(request: Request):
-    return templates.TemplateResponse("users/signup.html", {"request": request})
 
 
 @app.post("/signup")
 def post_signup(
-    request: Request,
-    email: str = Form(),
+    email: EmailStr = Form(),
     full_name: str = Form(),
     password: str = Form(),
+    db: Session = Depends(get_db),
 ):
     password = hash_password(password)
-    user = User(email=email, full_name=full_name, password=password)
-    users_repository.save(user)
-    return JSONResponse(content={"message": "successfull signup"}, status_code=200)
-
-
-@app.get("/login")
-def display_login(request: Request):
-    return templates.TemplateResponse("users/login.html", {"request": request})
+    user = UserCreate(email=email, full_name=full_name, password=password)
+    new_user = users_repository.save(db, user)
+    return Response(status_code=200, content=f"successfull signup. User_id = {new_user.id}")
 
 
 @app.post("/login")

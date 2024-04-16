@@ -1,61 +1,110 @@
-from pydantic import BaseModel
+from fastapi import HTTPException
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session
+from .models import User
+from attrs import define
 
 
-class User(BaseModel):
+@define
+class UserCreate:
     email: str
     full_name: str
-    password: bytes
-    id: int = 0
+    password: str
 
 
 class UsersRepository:
-    users: list[User]
 
-    def __init__(self):
-        self.users = []
+    def save(self, db: Session, user_data: UserCreate) -> User:
+        try:
+            # Check if the user already exists
+            existing_user = db.query(User).filter(User.email == user_data.email).first()
+            if existing_user:
+                raise HTTPException(status_code=400, detail="User already exists")
 
-    # необходимые методы сюда
-    def get_all(self):
-        return self.users
+            new_user = User(
+                email=user_data.email,
+                full_name=user_data.full_name,
+                password=user_data.password,
+            )
 
-    def get_one(self, id):
-        for user in self.users:
-            if id == user.id:
-                return user
-        return None
+            db.add(new_user)
+            db.commit()
+            db.refresh(new_user)
+            return new_user
+        except IntegrityError:
+            db.rollback()
+            raise HTTPException(status_code=400, detail="User already exists")
 
-    def save(self, user: User):
-        user.id = len(self.users) + 1
-        self.users.append(user)
-        return user
+    def get_by_email(self, db: Session, email: str) -> User:
+        db_user = db.query(User).filter(User.email == email).first()
+        if db_user is None:
+            raise HTTPException(status_code=404, detail="User not found")
+        return db_user
 
-    def update(self, id: int, input: User):
-        for i, user in enumerate(self.users):
-            if user.id == id:
-                input.id = id
-                self.users[i] = input
+    def get_by_id(self, db: Session, user_id: int) -> User:
+        db_user = db.query(User).filter(User.id == user_id).first()
+        if db_user is None:
+            raise HTTPException(status_code=404, detail="User not found")
+        return db_user
 
-    def delete(
-        self,
-        id: int,
-    ):
-        for i, user in enumerate(self.users):
-            if user.id == id:
-                del self.users[i]
 
-    def check_user(self, email: str, password: bytes):
-        for user in self.users:
-            if user.email == email:
-                if user.password == password:
-                    return user
+# from pydantic import BaseModel
 
-        return None
 
-    def get_user_by_email(self, email: str):
-        for user in self.users:
-            if email == user.email:
-                return user
-        return None
-    
+# class User(BaseModel):
+#     email: str
+#     full_name: str
+#     password: bytes
+#     id: int = 0
 
-    # конец решения
+
+# class UsersRepository:
+#     users: list[User]
+
+#     def __init__(self):
+#         self.users = []
+
+#     # необходимые методы сюда
+#     def get_all(self):
+#         return self.users
+
+#     def get_one(self, id):
+#         for user in self.users:
+#             if id == user.id:
+#                 return user
+#         return None
+
+#     def save(self, user: User):
+#         user.id = len(self.users) + 1
+#         self.users.append(user)
+#         return user
+
+#     def update(self, id: int, input: User):
+#         for i, user in enumerate(self.users):
+#             if user.id == id:
+#                 input.id = id
+#                 self.users[i] = input
+
+#     def delete(
+#         self,
+#         id: int,
+#     ):
+#         for i, user in enumerate(self.users):
+#             if user.id == id:
+#                 del self.users[i]
+
+#     def check_user(self, email: str, password: bytes):
+#         for user in self.users:
+#             if user.email == email:
+#                 if user.password == password:
+#                     return user
+
+#         return None
+
+#     def get_user_by_email(self, email: str):
+#         for user in self.users:
+#             if email == user.email:
+#                 return user
+#         return None
+
+#     # конец решения

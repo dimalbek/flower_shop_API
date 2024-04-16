@@ -1,8 +1,8 @@
-"""fist migration
+"""first
 
-Revision ID: 67f9e02f91e0
+Revision ID: 135b25ba7669
 Revises: 
-Create Date: 2024-04-16 16:00:24.092198
+Create Date: 2024-04-16 21:05:04.762715
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '67f9e02f91e0'
+revision = '135b25ba7669'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -27,12 +27,11 @@ def upgrade():
     )
     op.create_index(op.f('ix_flowers_id'), 'flowers', ['id'], unique=False)
     op.create_table('users',
-    sa.Column('id', sa.Integer(), autoincrement=True, nullable=True),
+    sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
     sa.Column('email', sa.String(), nullable=False),
     sa.Column('full_name', sa.String(), nullable=False),
     sa.Column('password', sa.String(), nullable=False),
-    sa.Column('photo', sa.LargeBinary(), nullable=True),
-    sa.PrimaryKeyConstraint('email')
+    sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_users_email'), 'users', ['email'], unique=True)
     op.create_index(op.f('ix_users_id'), 'users', ['id'], unique=False)

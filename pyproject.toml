@@ -15,8 +15,9 @@ python-multipart = "^0.0.6"
 python-jose = {extras = ["cryptography"], version = "^3.3.0"}
 attrs = "^23.1.0"
 bcrypt = "^4.1.2"
-pydantic = "^2.6.2"
+pydantic = {extras = ["email"], version = "^2.7.0"}
 passlib = "^1.7.4"
+sqlalchemy-orm = "^1.2.10"
 
 
 [tool.poetry.group.dev.dependencies]
