@@ -15,7 +15,7 @@ from typing import List
 from pydantic import EmailStr
 
 from .flowers_repository import Flower, FlowersRepository
-from .users_repository import User, UsersRepository, UserCreate
+from .users_repository import User, UsersRepository, UserCreate, ProfileResponse
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 from .database import get_db
@@ -23,7 +23,7 @@ from .database import get_db
 app = FastAPI()
 templates = templating.Jinja2Templates("templates")
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/login")
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -66,11 +66,9 @@ def post_signup(
     )
 
 
-
 @app.post("/login")
 def post_login(
-    form_data: OAuth2PasswordRequestForm = Depends(),
-    db: Session = Depends(get_db)
+    form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)
 ):
     user = users_repository.get_by_email(db, form_data.username)
     if not user or not verify_password(form_data.password, user.password):
@@ -86,15 +84,19 @@ def post_login(
 
 
 @app.get("/profile")
-def get_profile(token: str = Depends(oauth2_scheme)):
+def get_profile(
+    token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)
+):
     print("token:", token)
     user_id = decode_jwt(token)
-    user = users_repository.get_one(int(user_id))
-    if user is None:
-        print("Hello")
-        raise HTTPException(status_code=404, detail="User not found")
-    user_data = user.dict(exclude={"password"})
-    return user_data
+    db_user = users_repository.get_by_id(db, int(user_id))
+    return ProfileResponse(
+        id=db_user.id,
+        email=db_user.email,
+        full_name=db_user.full_name
+    )
+
+
 
 
 @app.get("/flowers", response_model=List[Flower])
