@@ -7,6 +7,7 @@ from fastapi import (
     templating,
     Depends,
     HTTPException,
+    Query,
 )
 from fastapi.responses import RedirectResponse, JSONResponse
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
@@ -14,7 +15,13 @@ from jose import jwt
 from typing import List
 from pydantic import EmailStr
 
-from .flowers_repository import Flower, FlowersRepository
+from .flowers_repository import (
+    Flower,
+    FlowersRepository,
+    FlowerResponse,
+    PatchFlowerRequest,
+    FlowerRequest,
+)
 from .users_repository import User, UsersRepository, UserCreate, ProfileResponse
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
@@ -84,31 +91,60 @@ def post_login(
 
 
 @app.get("/profile", response_model=ProfileResponse)
-def get_profile(
-    token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)
-):
+def get_profile(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     print("token:", token)
     user_id = decode_jwt(token)
     db_user = users_repository.get_by_id(db, int(user_id))
     return ProfileResponse(
-        id=db_user.id,
-        email=db_user.email,
-        full_name=db_user.full_name
+        id=db_user.id, email=db_user.email, full_name=db_user.full_name
     )
 
 
+@app.get("/flowers", response_model=List[FlowerResponse])
+def get_flowers(
+    token: str = Depends(oauth2_scheme),
+    db: Session = Depends(get_db),
+    offset: int = Query(0, ge=0),
+    limit: int = Query(10, ge=1),
+):
+    flowers = flowers_repository.get_all(db, offset, limit)
+    return flowers
 
 
-@app.get("/flowers", response_model=List[Flower])
-def get_flowers():
-    return flowers_repository.get_all()
+@app.post("/flowers")
+def post_flowers(
+    flower: FlowerRequest,
+    token: str = Depends(oauth2_scheme),
+    db: Session = Depends(get_db),
+):
+    flower_id = flowers_repository.save_flower(db, flower)
+    return JSONResponse(
+        status_code=200,
+        content={"message": f"Flower with id {flower_id} successfully created"},
+    )
 
 
-@app.post("/flowers", response_model=Flower)
-def add_flower(name: str = Form(), count: int = Form(), cost: int = Form()):
-    flower_data = Flower(name=name, count=count, cost=cost)
-    saved_flower = flowers_repository.save(flower_data)
-    return saved_flower
+@app.patch("/flowers/{flower_id}", response_model=FlowerResponse)
+def patch_flower(
+    flower_id: int,
+    flower_data: PatchFlowerRequest,
+    token: str = Depends(oauth2_scheme),
+    db: Session = Depends(get_db),
+):
+    updated_flower = flowers_repository.update_flower(db, flower_id, flower_data)
+    return updated_flower
+
+
+@app.delete("/flowers/{flower_id}")
+def delete_flower(
+    flower_id: int, token: str = Depends(oauth2_scheme),
+    db: Session = Depends(get_db),
+):
+    flower = flowers_repository.delete_flower(db, flower_id)
+    return JSONResponse(
+        status_code=200,
+        content={"message": f"Flower with id {flower.id} successfully deleted"}
+    )
 
 
 def get_cart_items_from_cookie(request: Request):

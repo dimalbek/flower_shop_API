@@ -19,6 +19,13 @@ class PatchFlowerRequest(BaseModel):
     cost: float | None = None
 
 
+class FlowerResponse(BaseModel):
+    id: int
+    name: str
+    count: int
+    cost: float
+
+
 class FlowersRepository:
     flowers: list[Flower]
 
@@ -35,9 +42,7 @@ class FlowersRepository:
 
         return db_flower.id
 
-    def get_all(
-            self, db: Session, skip: int = 0, limit: int = 10
-    ) -> List[Flower]:
+    def get_all(self, db: Session, skip: int = 0, limit: int = 10) -> List[Flower]:
         return db.query(Flower).offset(skip).limit(limit).all()
 
     def update_flower(
@@ -49,9 +54,7 @@ class FlowersRepository:
 
         updates = flower_data.dict(exclude_unset=True)
         if not updates:
-            raise HTTPException(
-                status_code=400, detail="No data provided to update"
-            )
+            raise HTTPException(status_code=400, detail="No data provided to update")
 
         for key, value in updates.items():
             setattr(db_flower, key, value)
@@ -69,4 +72,5 @@ class FlowersRepository:
             raise HTTPException(status_code=404, detail="Flower not found")
         db.delete(db_flower)
         db.commit()
+        return db_flower
         return {"message": f"Flower with id {flower_id} deleted"}
