@@ -61,20 +61,27 @@ def post_signup(
     password = hash_password(password)
     user = UserCreate(email=email, full_name=full_name, password=password)
     new_user = users_repository.save(db, user)
-    return Response(status_code=200, content=f"successfull signup. User_id = {new_user.id}")
+    return Response(
+        status_code=200, content=f"successfull signup. User_id = {new_user.id}"
+    )
+
 
 
 @app.post("/login")
-def post_login(form_data: OAuth2PasswordRequestForm = Depends()):
-    user = users_repository.get_user_by_email(form_data.username)
+def post_login(
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    db: Session = Depends(get_db)
+):
+    user = users_repository.get_by_email(db, form_data.username)
     if not user or not verify_password(form_data.password, user.password):
+        # return {"form": hash_password(form_data).password, "db": user.password}
         raise HTTPException(
             status_code=401,
-            detail="Incorrect username or password",
+            detail="Incorrect password",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    access_token = create_jwt(user_id=user.id)
+    access_token = create_jwt(user.id)
     return {"access_token": access_token, "token_type": "bearer"}
 
 
