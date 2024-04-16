@@ -45,6 +45,12 @@ class FlowersRepository:
     def get_all(self, db: Session, skip: int = 0, limit: int = 10) -> List[Flower]:
         return db.query(Flower).offset(skip).limit(limit).all()
 
+    def get_by_id(self, db: Session, flower_id: int) -> Flower:
+        db_flower = db.query(Flower).filter(Flower.id == flower_id).first()
+        if db_flower is None:
+            raise HTTPException(status_code=404, detail="Flower not found")
+        return db_flower
+
     def update_flower(
         self, db: Session, flower_id: int, flower_data: PatchFlowerRequest
     ) -> Flower:

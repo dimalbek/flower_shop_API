@@ -137,13 +137,14 @@ def patch_flower(
 
 @app.delete("/flowers/{flower_id}")
 def delete_flower(
-    flower_id: int, token: str = Depends(oauth2_scheme),
+    flower_id: int,
+    token: str = Depends(oauth2_scheme),
     db: Session = Depends(get_db),
 ):
     flower = flowers_repository.delete_flower(db, flower_id)
     return JSONResponse(
         status_code=200,
-        content={"message": f"Flower with id {flower.id} successfully deleted"}
+        content={"message": f"Flower with id {flower.id} successfully deleted"},
     )
 
 
@@ -151,7 +152,7 @@ def get_cart_items_from_cookie(request: Request):
     cart_items = request.cookies.get("cart_items")
     if cart_items is None:
         return []
-    cart = cart_items.split()
+    cart = cart_items.split(",")
     return cart
 
 
@@ -160,28 +161,43 @@ def add_flower_to_cookie(
     request: Request,
     response: Response,
     flower_id: int = Form(),
+    token: str = Depends(oauth2_scheme),
 ):
     cart_items = get_cart_items_from_cookie(request)
     cart_items.append(str(flower_id))
     cart_items_str = ",".join([str(item) for item in cart_items])
-    response.set_cookie("cart_items", cart_items_str)
+    response.set_cookie(
+        key="cart_items",
+        value=cart_items_str,
+        httponly=True,
+        max_age=1800,
+        path='/'
+    )
     return JSONResponse(content={"message": "flower added to cart"}, status_code=200)
 
 
 @app.get("/cart/items")
-def get_cart_items(request: Request):
+def get_cart_items(
+    request: Request,
+    db: Session = Depends(get_db),
+    token: str = Depends(oauth2_scheme),
+):
     cart_items = get_cart_items_from_cookie(request)
     flowers_in_cart = []
     total_cost = 0
 
     for flower_id in cart_items:
         flower_id = int(flower_id)
-        flower = flowers_repository.get_one(flower_id)
-        if flower:
+        db_flower = flowers_repository.get_by_id(db, flower_id)
+        if db_flower:
             flowers_in_cart.append(
-                {"id": flower.id, "name": flower.name, "cost": flower.cost}
+                {
+                    "id": db_flower.id,
+                    "name": db_flower.name,
+                    "cost": db_flower.cost,
+                }
             )
-            total_cost += flower.cost
+            total_cost += db_flower.cost
 
     return JSONResponse(
         content={"flowers_in_cart": flowers_in_cart, "total_cost": total_cost}
