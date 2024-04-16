@@ -19,13 +19,6 @@ from .users_repository import User, UsersRepository
 from passlib.context import CryptContext
 
 
-# def hash_password(password: str):
-#     h = 0
-#     for char in password:
-#         h = (31 * h + ord(char)) & 0xFFFFFFFF
-#     return bytes(((h + 0x80000000) & 0xFFFFFFFF) - 0x80000000)
-
-
 app = FastAPI()
 templates = templating.Jinja2Templates("templates")
 
@@ -102,9 +95,11 @@ def post_login(form_data: OAuth2PasswordRequestForm = Depends()):
 
 @app.get("/profile")
 def get_profile(token: str = Depends(oauth2_scheme)):
+    print("token:", token)
     user_id = decode_jwt(token)
     user = users_repository.get_one(int(user_id))
     if user is None:
+        print("Hello")
         raise HTTPException(status_code=404, detail="User not found")
     user_data = user.dict(exclude={"password"})
     return user_data
