@@ -9,7 +9,7 @@ from fastapi import (
     HTTPException,
     Query,
 )
-from fastapi.responses import RedirectResponse, JSONResponse
+from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import jwt
 from typing import List
@@ -150,10 +150,14 @@ def delete_flower(
 
 def get_cart_items_from_cookie(request: Request):
     cart_items = request.cookies.get("cart_items")
-    if cart_items is None:
-        return []
-    cart = cart_items.split(",")
-    return cart
+    if not cart_items:
+        return {}
+    items = {}
+    for item in cart_items.split(","):
+        if ":" in item:
+            flower_id, quantity = item.split(":")
+            items[int(flower_id)] = int(quantity)
+    return items
 
 
 @app.post("/cart/items")
@@ -161,19 +165,38 @@ def add_flower_to_cookie(
     request: Request,
     response: Response,
     flower_id: int = Form(),
+    quantity: int = Form(default=1),
+    db: Session = Depends(get_db),
     token: str = Depends(oauth2_scheme),
 ):
+    if quantity < 1:
+        return JSONResponse(
+            content={"message": "Quantity should be greater than 0"},
+            status_code=400
+        )
+
     cart_items = get_cart_items_from_cookie(request)
-    cart_items.append(str(flower_id))
-    cart_items_str = ",".join([str(item) for item in cart_items])
+    db_flower = flowers_repository.get_by_id(db, flower_id)
+    if db_flower.count < quantity:
+        return JSONResponse(
+            content={"message": f"There are only {db_flower.count} flowers available"},
+            status_code=400
+        )
+
+    cart_items[flower_id] = quantity
+    cart_items_str = ",".join(f"{id}:{qty}" for id, qty in cart_items.items())
+
+    response = JSONResponse(
+        content={"message": "Flower added to cart"}, status_code=200
+    )
     response.set_cookie(
         key="cart_items",
         value=cart_items_str,
         httponly=True,
         max_age=1800,
-        path='/'
+        path="/",
     )
-    return JSONResponse(content={"message": "flower added to cart"}, status_code=200)
+    return response
 
 
 @app.get("/cart/items")
@@ -186,18 +209,19 @@ def get_cart_items(
     flowers_in_cart = []
     total_cost = 0
 
-    for flower_id in cart_items:
-        flower_id = int(flower_id)
-        db_flower = flowers_repository.get_by_id(db, flower_id)
-        if db_flower:
+    for flower_id_str, quantity in cart_items.items():
+        flower_id = int(flower_id_str)
+        flower = flowers_repository.get_by_id(db, flower_id)
+        if flower:
             flowers_in_cart.append(
                 {
-                    "id": db_flower.id,
-                    "name": db_flower.name,
-                    "cost": db_flower.cost,
+                    "id": flower.id,
+                    "name": flower.name,
+                    "cost": flower.cost,
+                    "quantity": quantity,
                 }
             )
-            total_cost += db_flower.cost
+            total_cost += flower.cost * quantity
 
     return JSONResponse(
         content={"flowers_in_cart": flowers_in_cart, "total_cost": total_cost}
