@@ -83,7 +83,7 @@ def post_login(
     return {"access_token": access_token, "token_type": "bearer"}
 
 
-@app.get("/profile")
+@app.get("/profile", response_model=ProfileResponse)
 def get_profile(
     token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)
 ):

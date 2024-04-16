@@ -1,46 +1,72 @@
+from fastapi import HTTPException
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session
+from .models import Flower
+from attrs import define
 from pydantic import BaseModel
+from typing import List
 
 
-class Flower(BaseModel):
+class FlowerRequest(BaseModel):
     name: str
-    count: int
-    cost: int
-    id: int = 0
+    count: int | None = None
+    cost: float
+
+
+class PatchFlowerRequest(BaseModel):
+    name: str | None = None
+    count: int | None = None
+    cost: float | None = None
 
 
 class FlowersRepository:
     flowers: list[Flower]
 
-    def __init__(self):
-        self.flowers = []
+    def save_flower(self, db: Session, flower: FlowerRequest) -> int:
+        db_flower = Flower(name=flower.name, count=flower.count, cost=flower.cost)
+        try:
+            db.add(db_flower)
+            db.commit()
+            db.refresh(db_flower)
 
-    # необходимые методы сюда
-    def get_all(self):
-        return self.flowers
+        except IntegrityError:
+            db.rollback()
+            raise HTTPException(status_code=400, detail="Invalid flower data")
 
-    def get_one(self, id):
-        for flower in self.flowers:
-            if id == flower.id:
-                return flower
-        return None
+        return db_flower.id
 
-    def save(self, flower: Flower):
-        flower.id = len(self.flowers) + 1
-        self.flowers.append(flower)
-        return flower
+    def get_all(
+            self, db: Session, skip: int = 0, limit: int = 10
+    ) -> List[Flower]:
+        return db.query(Flower).offset(skip).limit(limit).all()
 
-    def update(self, id: int, input: Flower):
-        for i, flower in enumerate(self.flowers):
-            if flower.id == id:
-                input.id = id
-                self.flowers[i] = input
+    def update_flower(
+        self, db: Session, flower_id: int, flower_data: PatchFlowerRequest
+    ) -> Flower:
+        db_flower = db.query(Flower).filter(Flower.id == flower_id).first()
+        if db_flower is None:
+            raise HTTPException(status_code=404, detail="Flower not found")
 
-    def delete(
-        self,
-        id: int,
-    ):
-        for i, flower in enumerate(self.flowers):
-            if flower.id == id:
-                del self.flowers[i]
+        updates = flower_data.dict(exclude_unset=True)
+        if not updates:
+            raise HTTPException(
+                status_code=400, detail="No data provided to update"
+            )
 
-    # конец решения
+        for key, value in updates.items():
+            setattr(db_flower, key, value)
+        try:
+            db.commit()
+            db.refresh(db_flower)
+            return db_flower
+        except IntegrityError:
+            db.rollback()
+            raise HTTPException(status_code=400, detail="Invalid flower data")
+
+    def delete_flower(self, db: Session, flower_id: int):
+        db_flower = db.query(Flower).filter(Flower.id == flower_id).first()
+        if db_flower is None:
+            raise HTTPException(status_code=404, detail="Flower not found")
+        db.delete(db_flower)
+        db.commit()
+        return {"message": f"Flower with id {flower_id} deleted"}
