@@ -1,15 +1,3 @@
-[![Review Assignment Due Date](https://classroom.github.com/assets/deadline-readme-button-24ddc0f5d75046c5622901739e7c5dd533143b0c8e959d652212380cedb1ea36.svg)](https://classroom.github.com/a/Q0-uUoqy)
-# books
-
-Данная папка предназначена для следующих заданий:
-- signup
-- login
-- flowert
-- cart
-- purchased 💎
-
-> 💡 Необходимо чтобы задания были выполнены в данной папке.
-
 ## Запуск проекта
 
 Установить зависимости:
@@ -36,8 +24,4 @@ uvicorn app.main:app --reload
 curl localhost:8000
 ```
 
-Запустить тесты.
-
-```bash
-pytest -v
-```
+Проверка API с помощью Swagger: [localhost:8000/docs](http://localhost:8000/docs).
